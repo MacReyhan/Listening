@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keyword Listener</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full text-center space-y-6">
+        <h1 class="text-3xl font-bold text-gray-800">Keyword Listener</h1>
+        <p class="text-gray-600">Press the button below to start listening for "baba," "father," or "papa."</p>
+
+
+        <p id="status" class="text-lg font-medium text-gray-500">Press the button to begin...</p>
+
+
+        <button id="toggleListeningBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg">
+            Start Listening
+        </button>
+        
+        <!-- This is where the recognized text will be displayed for debugging -->
+        <div class="bg-gray-100 rounded-lg p-4 mt-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-2">Recognized Text</h2>
+            <p id="recognizedText" class="text-gray-500 italic"></p>
+        </div>
+
+
+    </div>
+
+
+    <script>
+        // Check for Web Speech API support
+        window.onload = () => {
+            if (!('webkitSpeechRecognition' in window)) {
+                document.getElementById('status').textContent = "Speech recognition is not supported in this browser. Try Chrome for Android.";
+                document.getElementById('toggleListeningBtn').disabled = true;
+                return;
+            }
+        };
+
+
+        const toggleListeningBtn = document.getElementById('toggleListeningBtn');
+        const statusEl = document.getElementById('status');
+        const recognizedTextEl = document.getElementById('recognizedText');
+
+
+        let isListening = false;
+        let recognition = new webkitSpeechRecognition();
+        
+        // This is the audio element that will play the sound
+        // IMPORTANT: I have replaced the URL with the one you provided. 
+        // If the sound doesn't play, please make sure the Google Drive file is publicly accessible or use a direct download link.
+        const audio = new Audio("https://drive.google.com/file/d/1ZLtcJv8f3oezh1sJQqareesTZsVN5XIu/view?usp=drivesdk");
+
+
+        // Speech recognition settings
+        recognition.continuous = true; // Keep listening after a pause
+        recognition.interimResults = false; // We only want the final result
+        recognition.lang = 'en-US'; // Set the language
+
+
+        // Event handler for when speech is recognized
+        recognition.onresult = (event) => {
+            const last = event.results.length - 1;
+            const transcript = event.results[last][0].transcript.trim().toLowerCase();
+            
+            recognizedTextEl.textContent = "Heard: '" + transcript + "'";
+
+
+            // Check for the target keywords
+            if (transcript.includes("baba") || transcript.includes("father") || transcript.includes("papa")) {
+                statusEl.textContent = "Keyword detected! Playing sound...";
+                audio.play();
+                console.log("Keyword detected and sound played.");
+            }
+        };
+
+
+        // Event handler for when the recognition service ends
+        recognition.onend = () => {
+            if (isListening) {
+                // If we are supposed to be listening, restart the service automatically
+                recognition.start();
+            }
+        };
+
+
+        // Event handler for errors
+        recognition.onerror = (event) => {
+            console.error("Speech recognition error:", event.error);
+            if (event.error === 'no-speech') {
+                statusEl.textContent = "No speech detected. The service will restart automatically.";
+            } else if (event.error === 'not-allowed') {
+                statusEl.textContent = "Microphone access denied. Please enable it in your browser settings.";
+                toggleListeningBtn.textContent = "Start Listening";
+                isListening = false;
+            } else {
+                statusEl.textContent = `Error: ${event.error}`;
+            }
+        };
+
+
+        // Button click handler
+        toggleListeningBtn.addEventListener('click', () => {
+            if (!isListening) {
+                try {
+                    recognition.start();
+                    isListening = true;
+                    toggleListeningBtn.textContent = "Stop Listening";
+                    statusEl.textContent = "Listening...";
+                } catch (e) {
+                    console.error("Error starting recognition:", e);
+                    // Handle case where recognition is already started
+                    if (e.name === 'InvalidStateError') {
+                        statusEl.textContent = "Already listening. Try again in a moment.";
+                    }
+                }
+            } else {
+                recognition.stop();
+                isListening = false;
+                toggleListeningBtn.textContent = "Start Listening";
+                statusEl.textContent = "Stopped.";
+            }
+        });
+
+
+    </script>
+</body>
+</html>
+
+
+
